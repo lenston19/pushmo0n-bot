@@ -1,8 +1,48 @@
-version: '3.8'
+version: "3.9"
+
 services:
-  pushmo0n-bot:
+  xray-proxy:
+    build: ./xray-proxy
+    container_name: xray-proxy
+    env_file:
+      - .env
+    volumes:
+      - ./xray-config:/etc/xray
+    restart: unless-stopped
+
+  hev-tunnel:
+    image: ghcr.io/heiher/hev-socks5-tunnel:latest
+    container_name: hev-tunnel
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      TUN: tun0
+      MTU: 8500
+      IPV4: 198.18.0.1
+      TABLE: 20
+      MARK: 438
+      SOCKS5_ADDR: xray-proxy
+      SOCKS5_PORT: 10808
+      SOCKS5_UDP_MODE: udp
+      IPV4_INCLUDED_ROUTES: 0.0.0.0/0
+      IPV4_EXCLUDED_ROUTES: 198.18.0.1
+      LOG_LEVEL: info
+    dns:
+      - 8.8.8.8
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ping", "-c", "1", "8.8.8.8"]
+      interval: 10s
+      retries: 5
+
+  python-bot:
     build: .
     container_name: pushmo0n-bot
+    depends_on:
+      - hev-tunnel
+    network_mode: "service:hev-tunnel"
     env_file:
       - .env
     restart: unless-stopped
