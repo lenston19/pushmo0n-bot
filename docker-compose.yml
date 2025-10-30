@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  pushmo0n-bot:
+    build: .
+    container_name: pushmo0n-bot
+    env_file:
+      - .env
+    restart: unless-stopped
